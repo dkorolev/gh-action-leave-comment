@@ -1,0 +1,42 @@
+name: Comment on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  leave-comment:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Comment on line 10 of targetFile.js if it exists in the PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const targetFilePath = 'targetFile.js';
+            const targetLine = 10;
+            const commentBody = 'This is a comment on line 10 of targetFile.js';
+
+            // Fetching the list of files changed in the PR
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Check if the target file is in the list
+            const targetFile = files.find(file => file.filename === targetFilePath);
+
+            if (targetFile) {
+              // Comment on the specific line of that file
+              await github.rest.pulls.createReviewComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: commentBody,
+                commit_id: context.sha,
+                path: targetFilePath,
+                position: targetLine
+              });
+            }
+          github-token: ${{ secrets.GITHUB_TOKEN }}
